@@ -36,49 +36,12 @@ if($subs.GetType().IsArray -and $subs.length -gt 1){
         az account set --subscription $selectedSub
 }
 
-# Register resource providers
-Write-Host "Registering resource providers...";
-$provider_list = "Microsoft.EventHub", "Microsoft.StreamAnalytics", "Microsoft.Storage", "Microsoft.Compute"
-foreach ($provider in $provider_list){
-    $result = Register-AzResourceProvider -ProviderNamespace $provider
-    $status = $result.RegistrationState
-    Write-Host "$provider : $status"
-}
 
-# Generate unique random suffix
-[string]$suffix =  -join ((48..57) + (97..122) | Get-Random -Count 7 | % {[char]$_})
-Write-Host "Your randomly-generated suffix for Azure resources is $suffix"
-$resourceGroupName = "dp203-$suffix"
+$resourceGroupName = "dp203-s87e6yt"
+$storageAccountName = "storemakr"
+$eventNsName = "eventsmakr"
+$eventHubName = "eventhubmakr"
 
-# Choose a random region
-Write-Host "Finding an available region. This may take several minutes...";
-$Region = "westeurope"
-
-
-# Create Azure resources
-Write-Host "Creating $resourceGroupName resource group in $Region ..."
-New-AzResourceGroup -Name $resourceGroupName -Location $Region | Out-Null
-
-$storageAccountName = "store$suffix"
-$eventNsName = "events$suffix"
-$eventHubName = "eventhub$suffix"
-
-write-host "Creating Azure resources in $resourceGroupName resource group..."
-write-host "(This may take some time!)"
-New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
-  -TemplateFile "setup.json" `
-  -Mode Complete `
-  -storageAccountName $storageAccountName `
-  -uniqueSuffix $suffix `
-  -eventNsName $eventNsName `
-  -eventHubName $eventHubName `
-  -Force
-
-# Make the current user owner of the blob store
-write-host "Granting permissions on the $storageAccountName storage account..."
-$subscriptionId = (Get-AzContext).Subscription.Id
-$userName = ((az ad signed-in-user show) | ConvertFrom-JSON).UserPrincipalName
-New-AzRoleAssignment -SignInName $userName -RoleDefinitionName "Storage Blob Data Owner" -Scope "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$storageAccountName" -ErrorAction SilentlyContinue;
 
 # Prepare JavaScript EventHub client app
 write-host "Creating Event Hub client app..."
